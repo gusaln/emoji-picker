@@ -1,17 +1,19 @@
-// Copyright 2000-2021 JetBrains s.r.o. and contributors. Use of this source code is governed by the Apache 2.0 license that can be found in the LICENSE file.
 import androidx.compose.desktop.ui.tooling.preview.Preview
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.res.ResourceLoader
 import androidx.compose.ui.text.AnnotatedString
@@ -27,21 +29,50 @@ data class Emoji(val codepoint: String, val raw: String, val name: String) {
     }
 }
 
+@OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun EmojiList(emojis: List<Emoji>, onSelect: (Emoji) -> Unit) {
-    val scrollState = rememberScrollState()
+    Box {
+        val state = rememberLazyListState()
+        val scrollState = rememberScrollState()
 
-    LazyColumn(Modifier.padding(horizontal = 6.dp).scrollable(scrollState, Orientation.Vertical).fillMaxSize()) {
-        items(emojis, { it.codepoint }) {
-            Row(
-                modifier = Modifier.padding(4.dp).clickable { onSelect(it) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                Text(it.name)
-                Text(it.toString())
+        LazyColumn(
+            modifier = Modifier
+                .padding(horizontal = 6.dp)
+                .scrollable(scrollState, Orientation.Vertical)
+                .fillMaxSize()
+                .onKeyEvent {
+                    if (it.key == Key.PageDown) {
+                        return@onKeyEvent true
+                    }
+
+                    false
+                },
+            state
+        ) {
+            stickyHeader {
+
+            }
+
+            items(emojis, { it.codepoint }) {
+                Row(
+                    modifier = Modifier
+                        .padding(4.dp)
+                        .fillMaxWidth()
+                        .clickable { onSelect(it) },
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Text(it.name)
+                    Text(it.toString())
+                }
             }
         }
+
+        VerticalScrollbar(
+            modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(),
+            adapter = rememberScrollbarAdapter(state)
+        )
     }
 }
 
@@ -50,6 +81,7 @@ fun EmojiList(emojis: List<Emoji>, onSelect: (Emoji) -> Unit) {
 @Composable
 @Preview
 fun App() {
+    val clipboardManager = LocalClipboardManager.current
     val emojis = ResourceLoader.Default.load("/emojis.csv")
         .bufferedReader()
         .readLines()
@@ -59,7 +91,6 @@ fun App() {
             Emoji(parts[0], parts[1], parts[2])
         }
 
-    val clipboardManager = LocalClipboardManager.current
     var query by remember { mutableStateOf("") }
 
     MaterialTheme {
