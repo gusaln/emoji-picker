@@ -1,5 +1,6 @@
 import androidx.compose.foundation.VerticalScrollbar
 import androidx.compose.foundation.background
+import androidx.compose.foundation.focusable
 import androidx.compose.foundation.gestures.Orientation
 import androidx.compose.foundation.gestures.scrollable
 import androidx.compose.foundation.layout.*
@@ -16,7 +17,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.ExperimentalComposeUiApi
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.*
 import androidx.compose.ui.unit.dp
 
 data class Emoji(val codepoint: String, val raw: String, val name: String) {
@@ -34,7 +38,8 @@ fun EmojiRow(
 ) {
     Row(
         modifier = Modifier
-            .clip(RoundedCornerShape(4.dp))
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(6.dp))
             .padding(6.dp)
             .background(
                 when (selected) {
@@ -42,7 +47,6 @@ fun EmojiRow(
                     else -> Color.Unspecified
                 }
             )
-            .fillMaxWidth()
             .selectable(selected) { onSelect(emoji) },
 
         verticalAlignment = Alignment.CenterVertically,
@@ -55,25 +59,73 @@ fun EmojiRow(
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
-fun EmojiList(emojis: List<Emoji>, onSelect: (Emoji) -> Unit) {
-    var selectedIndex by remember { mutableStateOf(0) }
-    val selected by remember { derivedStateOf { emojis[selectedIndex] } }
-    val selectedBackgroundColor = MaterialTheme.colors.secondary.copy(0.7f)
+fun EmojiList(
+    emojis: List<Emoji>,
+    selectedIndex: Int = 0,
+    emojiListFocus: FocusRequester,
+    onSelect: (Emoji) -> Unit,
+    onChangeSelectIndex: (Int) -> Unit,
+) {
+    Box(modifier = Modifier
+        .onPreviewKeyEvent {
+            if (it.type == KeyEventType.KeyUp) {
+                return@onPreviewKeyEvent false
+            }
 
-    Box {
+            when (it.key) {
+                Key.Enter -> {
+                    onSelect(emojis[selectedIndex])
+
+                    true
+                }
+
+                Key.PageDown, Key.DirectionDown -> {
+                    onChangeSelectIndex(selectedIndex + 1)
+
+                    true
+                }
+
+                Key.PageUp, Key.DirectionUp -> {
+                    onChangeSelectIndex(selectedIndex - 1)
+
+                    true
+                }
+
+                else -> false
+            }
+        }
+        .focusRequester(emojiListFocus)
+        .focusable()
+    ) {
         val state = rememberLazyListState()
+        val selectedBackgroundColor = MaterialTheme.colors.primaryVariant.copy(0.5f)
+
+        LaunchedEffect(selectedIndex) {
+            if (!state.isScrollInProgress) {
+                state.scrollToItem(selectedIndex)
+            }
+        }
 
         LazyColumn(
             modifier = Modifier.padding(horizontal = 6.dp).scrollable(state, Orientation.Vertical).fillMaxSize(),
             state = state
         ) {
             items(emojis, { it.codepoint }) {
-                EmojiRow(it, selected.codepoint == it.codepoint, selectedBackgroundColor, onSelect)
+                EmojiRow(
+                    it,
+                    emojis.isNotEmpty() && emojis[selectedIndex].codepoint == it.codepoint,
+                    selectedBackgroundColor,
+                    onSelect
+                )
             }
         }
 
         VerticalScrollbar(
             modifier = Modifier.align(Alignment.CenterEnd).fillMaxHeight(), adapter = rememberScrollbarAdapter(state)
         )
+    }
+
+    LaunchedEffect(Unit) {
+        emojiListFocus.requestFocus()
     }
 }
