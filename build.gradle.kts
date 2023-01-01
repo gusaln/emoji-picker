@@ -27,6 +27,7 @@ kotlin {
         val jvmMain by getting {
             dependencies {
                 implementation(compose.desktop.currentOs)
+                implementation("com.dorkbox:Notify:3.7")
             }
         }
         val jvmTest by getting
@@ -40,6 +41,9 @@ compose.desktop {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "emoji-picker"
             packageVersion = "1.0.0"
+            copyright = "© 2022 Gustavo Lopez. All rights reserved."
+            includeAllModules = true
+            licenseFile.set(project.file("LICENSE.txt"))
         }
     }
 }

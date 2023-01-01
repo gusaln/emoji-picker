@@ -51,18 +51,15 @@ fun App(trayState: TrayState) {
     val emojiListFocus = remember { FocusRequester() }
     var searching by remember { mutableStateOf(false) }
 
-//    MaterialTheme {
-    Scaffold(
-        topBar = {
-            TopAppBar(title = { Text("Emojis") })
-        },
+    MaterialTheme {
+        Scaffold(
+            topBar = {
+                TopAppBar(title = { Text("Emojis") })
+            },
 
-        content = {
-            Column(
-                modifier = Modifier
-                    .padding(16.dp)
-                    .fillMaxSize()
-                    .onPreviewKeyEvent {
+            content = {
+                Column(
+                    modifier = Modifier.padding(16.dp).fillMaxSize().onPreviewKeyEvent {
                         if (it.type == KeyEventType.KeyUp) {
                             return@onPreviewKeyEvent false
                         }
@@ -80,15 +77,12 @@ fun App(trayState: TrayState) {
 
                             else -> false
                         }
-                    },
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                TextField(
-                    modifier = Modifier.fillMaxWidth().focusRequester(searchbarFocus)
-                        .onFocusChanged {
+                    }, verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    TextField(
+                        modifier = Modifier.fillMaxWidth().focusRequester(searchbarFocus).onFocusChanged {
                             searching = it.hasFocus
-                        }
-                        .onPreviewKeyEvent {
+                        }.onPreviewKeyEvent {
                             if (it.type == KeyEventType.KeyUp) {
                                 return@onPreviewKeyEvent false
                             }
@@ -104,49 +98,47 @@ fun App(trayState: TrayState) {
                                 else -> false
                             }
                         },
-                    label = { Text("Type to filter the list") },
-                    value = query,
-                    leadingIcon = {
-                        Icon(Icons.Default.Search, "Search an emoji")
-                    },
-                    onValueChange = {
-                        query = it.trimStart().lowercase()
+                        label = { Text("Type to filter the list") },
+                        value = query,
+                        leadingIcon = {
+                            Icon(Icons.Default.Search, "Search an emoji")
+                        },
+                        onValueChange = {
+                            query = it.trimStart().lowercase()
 
-                        selectedIndex = 0
-                    },
-                )
+                            selectedIndex = 0
+                        },
+                    )
 
-                EmojiList(
-                    filteredEmojis,
-                    selectedIndex,
-                    emojiListFocus,
+                    EmojiList(
+                        filteredEmojis,
+                        selectedIndex,
+                        emojiListFocus,
 
-                    onSelect = {
-                        println("${it.name} emoji was copied to clipboard")
+                        onSelect = {
+                            println("${it.name} emoji was copied to clipboard")
 
-                        clipboardManager.setText(AnnotatedString(it.toString()))
-                        trayState.sendNotification(
-                            Notification(
-                                "Emoji Picked!",
-                                "${it.name} emoji was copied to clipboard"
+                            clipboardManager.setText(AnnotatedString(it.toString()))
+
+                            trayState.sendNotification(
+                                Notification(
+                                    "Emoji Picked!", "${it.name} emoji was copied to clipboard"
+                                )
                             )
-                        )
-                    },
-                    onChangeSelectIndex = {
-//                        println("Old index: ${selectedIndex}, new index ${it}.")
+                        },
+                        onChangeSelectIndex = {
+                            selectedIndex = if (it < 0) {
+                                filteredEmojis.size - 1
+                            } else {
+                                it % filteredEmojis.size
+                            }
 
-                        selectedIndex = if (it < 0) {
-                            filteredEmojis.size - 1
-                        } else {
-                            it % filteredEmojis.size
-                        }
-
-                    },
-                )
-            }
-        },
-    )
-//    }
+                        },
+                    )
+                }
+            },
+        )
+    }
 }
 
 
@@ -157,33 +149,28 @@ fun CloseWindowDialog(
     onCloseWindow: () -> Unit,
     onExitApplication: () -> Unit,
 ) {
-    Dialog(
-        title = "What do you wish to do?",
-        onCloseRequest = onCloseDialog,
-        onPreviewKeyEvent = {
-            when (it.key) {
-                Key.Escape -> {
-                    onExitApplication()
+    Dialog(title = "What do you wish to do?", onCloseRequest = onCloseDialog, onPreviewKeyEvent = {
+        when (it.key) {
+            Key.Escape -> {
+                onExitApplication()
 
-                    true
-                }
-
-                Key.Enter -> {
-                    onCloseWindow()
-
-                    true
-                }
-
-                else -> false
+                true
             }
+
+            Key.Enter -> {
+                onCloseWindow()
+
+                true
+            }
+
+            else -> false
         }
-    ) {
+    }) {
         Column(modifier = Modifier.padding(16.dp).fillMaxWidth(), verticalArrangement = Arrangement.SpaceBetween) {
             Row { Text("Do you wish to close the Window (Enter) or exit the application (Esc)?") }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
+                modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp, Alignment.End)
             ) {
                 Button(onClick = onExitApplication) {
                     Text("Exit")
@@ -219,13 +206,10 @@ fun main() = application {
     })
 
     if (isAskingToClose) {
-        CloseWindowDialog(
-            onCloseDialog = { isAskingToClose = false },
-            onCloseWindow = {
-                isVisible = false
-                isAskingToClose = false
-            },
-            onExitApplication = ::exitApplication
+        CloseWindowDialog(onCloseDialog = { isAskingToClose = false }, onCloseWindow = {
+            isVisible = false
+            isAskingToClose = false
+        }, onExitApplication = ::exitApplication
         )
     }
 
